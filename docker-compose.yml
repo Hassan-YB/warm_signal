@@ -1,0 +1,36 @@
+services:
+  db:
+    container_name: warm_signal_db
+    image: postgres:18.1-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U warm_signal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    container_name: warm_signal_backend
+    build:
+      context: ./backend/warm_signal
+      dockerfile: Dockerfile
+    command: sh -c "python manage.py runserver 0.0.0.0:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./backend/warm_signal:/app
+      - static_volume:/app/staticfiles
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  static_volume:
