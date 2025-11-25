@@ -60,3 +60,6 @@ restart:
 
 collectstatic:
 	$(COLLECTSTATIC)
+
+createsuperuser:
+	$(MANAGEMENT_PREFIX) createsuperuser
