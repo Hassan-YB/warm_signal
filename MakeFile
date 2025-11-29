@@ -1,65 +1,144 @@
-ENV = dev
-WEB_CONTAINER_NAME = warm_signal_backend
-EXEC_PREFIX = docker exec -it $(WEB_CONTAINER_NAME)
-MANAGEMENT_PREFIX = $(EXEC_PREFIX) bash -c "python manage.py
+# Makefile for Warm Signal Project
+# Provides convenient commands for managing the Django + Next.js application
 
+# Container names
+WEB_CONTAINER = warm_signal_backend
+FRONTEND_CONTAINER = warm_signal_frontend
+DB_CONTAINER = warm_signal_db
+
+# Docker compose command
 DOCKER_COMPOSE = docker compose -f docker-compose.yml
-BUILD = $(DOCKER_COMPOSE) build
-DOWN_ALL = $(DOCKER_COMPOSE) down -v
 
-MAKE_MIGRATIONS = $(MANAGEMENT_PREFIX) makemigrations"
-APPLY_MIGRATIONS = $(MANAGEMENT_PREFIX) migrate"
-SEED_DB = $(EXEC_PREFIX) python -m _db_seed
-_SHELL = $(MANAGEMENT_PREFIX) shell"
-COLLECTSTATIC = $(MANAGEMENT_PREFIX) collectstatic --noinput"
+# Exec prefixes
+EXEC_WEB = docker exec -it $(WEB_CONTAINER)
+EXEC_FRONTEND = docker exec -it $(FRONTEND_CONTAINER)
+EXEC_DB = docker exec -it $(DB_CONTAINER)
 
-build:
-	$(BUILD)
-run:
+# Django management prefix
+MANAGE = $(EXEC_WEB) python manage.py
+
+.PHONY: help
+help: ## Show this help message
+	@echo "Warm Signal Project - Available Commands:"
+	@echo ""
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+.PHONY: build
+build: ## Build all Docker containers
+	$(DOCKER_COMPOSE) build
+
+.PHONY: build-backend
+build-backend: ## Build only backend container
+	$(DOCKER_COMPOSE) build web
+
+.PHONY: build-frontend
+build-frontend: ## Build only frontend container
+	$(DOCKER_COMPOSE) build frontend
+
+.PHONY: run
+run: ## Start all containers in foreground
 	$(DOCKER_COMPOSE) up
-run-d:
+
+.PHONY: run-d
+run-d: ## Start all containers in background (detached)
 	$(DOCKER_COMPOSE) up -d
-stop:
+
+.PHONY: stop
+stop: ## Stop all containers
 	$(DOCKER_COMPOSE) stop
-down-all:
-	$(DOWN_ALL)
-clean-build: down-all
-	$(MAKE) build
-clean-run: clean-build
-	$(MAKE) run
 
-migrations:
-	$(MAKE_MIGRATIONS)
-	
-apply-migrations:
-	$(APPLY_MIGRATIONS)
-
-migrate:
-	$(MAKE_MIGRATIONS)
-	$(APPLY_MIGRATIONS)
-
-shell:
-	$(_SHELL)
-
-seed-db:
-	
-	$(SEED_DB)
-
-full-run:
-	$(MAKE) down-all
-	$(MAKE) run-d
-	sleep 5
-	$(MAKE) apply-migrations
-	$(MAKE) seed-db
-
-logs:
-	docker logs -f $(WEB_CONTAINER_NAME)
-
-restart:
+.PHONY: restart
+restart: ## Restart all containers
 	$(DOCKER_COMPOSE) restart
 
-collectstatic:
-	$(COLLECTSTATIC)
+.PHONY: down
+down: ## Stop and remove containers (keeps volumes)
+	$(DOCKER_COMPOSE) down
 
-createsuperuser:
-	$(MANAGEMENT_PREFIX) createsuperuser
+.PHONY: down-all
+down-all: ## Stop and remove containers and volumes
+	$(DOCKER_COMPOSE) down -v
+
+.PHONY: migrations
+migrations: ## Create Django migrations
+	$(MANAGE) makemigrations
+
+.PHONY: migrate
+migrate: ## Apply Django migrations
+	$(MANAGE) migrate
+
+.PHONY: migrate-all
+migrate-all: migrations migrate ## Create and apply migrations
+
+.PHONY: shell
+shell: ## Open Django shell
+	$(MANAGE) shell
+
+.PHONY: createsuperuser
+createsuperuser: ## Create Django superuser
+	$(MANAGE) createsuperuser
+
+.PHONY: collectstatic
+collectstatic: ## Collect static files
+	$(MANAGE) collectstatic --noinput
+
+.PHONY: backend-shell
+backend-shell: ## Open bash shell in backend container
+	$(EXEC_WEB) bash
+
+.PHONY: frontend-install
+frontend-install: ## Install frontend dependencies
+	$(EXEC_FRONTEND) npm install
+
+.PHONY: frontend-build
+frontend-build: ## Build frontend for production
+	$(EXEC_FRONTEND) npm run build
+
+.PHONY: frontend-shell
+frontend-shell: ## Open shell in frontend container
+	$(EXEC_FRONTEND) sh
+
+.PHONY: db-shell
+db-shell: ## Open PostgreSQL shell
+	$(EXEC_DB) psql -U warm_signal
+
+.PHONY: logs
+logs: ## Show logs from all containers
+	$(DOCKER_COMPOSE) logs -f
+
+.PHONY: logs-backend
+logs-backend: ## Show backend logs
+	docker logs -f $(WEB_CONTAINER)
+
+.PHONY: logs-frontend
+logs-frontend: ## Show frontend logs
+	docker logs -f $(FRONTEND_CONTAINER)
+
+.PHONY: logs-db
+logs-db: ## Show database logs
+	docker logs -f $(DB_CONTAINER)
+
+.PHONY: setup
+setup: ## Initial setup: build, run, migrate, collectstatic
+	$(MAKE) build
+	$(MAKE) run-d
+	@echo "Waiting for services to start..."
+	@sleep 10
+	$(MAKE) migrate
+	$(MAKE) collectstatic
+	@echo "Setup complete! Backend: http://localhost:8000, Frontend: http://localhost:3000"
+
+.PHONY: health
+health: ## Check container health status
+	@echo "Checking container status..."
+	@docker ps --filter "name=warm_signal" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+.PHONY: test
+test: ## Run Django tests
+	$(MANAGE) test
+
+.PHONY: up
+up: run-d ## Alias for run-d
+
+.PHONY: ps
+ps: health ## Alias for health check

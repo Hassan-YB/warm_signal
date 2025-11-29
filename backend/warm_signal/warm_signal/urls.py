@@ -25,6 +25,7 @@ admin.site.site_title = 'Warm Signal'
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', include('users.urls')),
 ]
 
 # Serve media files in development
