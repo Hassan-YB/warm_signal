@@ -5,21 +5,17 @@ import { useEffect, useRef, useState } from 'react'
 import Logo from './Logo'
 import HeaderLink from './Navigation/HeaderLink'
 import MobileHeaderLink from './Navigation/MobileHeaderLink'
-import Signin from '@/app/components/Auth/SignIn'
-import SignUp from '@/app/components/Auth/SignUp'
 import { Icon } from '@iconify/react/dist/iconify.js'
 import { headerItem } from '@/app/types/menu'
+import { isAuthenticated } from '@/utils/api'
 
 const Header: React.FC = () => {
   const [headerData, setHeaderData] = useState<headerItem[]>([])
 
   const [navbarOpen, setNavbarOpen] = useState(false)
   const [sticky, setSticky] = useState(false)
-  const [isSignInOpen, setIsSignInOpen] = useState(false)
-  const [isSignUpOpen, setIsSignUpOpen] = useState(false)
+  const [authenticated, setAuthenticated] = useState(false)
 
-  const signInRef = useRef<HTMLDivElement>(null)
-  const signUpRef = useRef<HTMLDivElement>(null)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -36,23 +32,41 @@ const Header: React.FC = () => {
     fetchData()
   }, [])
 
+  useEffect(() => {
+    // Check authentication status on mount
+    setAuthenticated(isAuthenticated())
+    
+    // Listen for storage changes (from other tabs/windows)
+    const handleStorageChange = () => {
+      setAuthenticated(isAuthenticated())
+    }
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Listen for custom auth state change event
+    const handleAuthChange = () => {
+      setAuthenticated(isAuthenticated())
+    }
+    window.addEventListener('authStateChanged', handleAuthChange)
+    
+    // Check auth state when window regains focus (e.g., after logout redirect)
+    const handleFocus = () => {
+      setAuthenticated(isAuthenticated())
+    }
+    window.addEventListener('focus', handleFocus)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('authStateChanged', handleAuthChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [])
+
+
   const handleScroll = () => {
     setSticky(window.scrollY >= 80)
   }
 
   const handleClickOutside = (event: MouseEvent) => {
-    if (
-      signInRef.current &&
-      !signInRef.current.contains(event.target as Node)
-    ) {
-      setIsSignInOpen(false)
-    }
-    if (
-      signUpRef.current &&
-      !signUpRef.current.contains(event.target as Node)
-    ) {
-      setIsSignUpOpen(false)
-    }
     if (
       mobileMenuRef.current &&
       !mobileMenuRef.current.contains(event.target as Node) &&
@@ -69,15 +83,15 @@ const Header: React.FC = () => {
       window.removeEventListener('scroll', handleScroll)
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [navbarOpen, isSignInOpen, isSignUpOpen])
+  }, [navbarOpen])
 
   useEffect(() => {
-    if (isSignInOpen || isSignUpOpen || navbarOpen) {
+    if (navbarOpen) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = ''
     }
-  }, [isSignInOpen, isSignUpOpen, navbarOpen])
+  }, [navbarOpen])
 
   return (
     <header
@@ -95,57 +109,26 @@ const Header: React.FC = () => {
             ))}
           </nav>
           <div className='flex items-center gap-4'>
-            <Link
-              href='#'
-              className='hidden lg:block bg-transparent text-primary border hover:bg-primary border-primary hover:text-white px-6 py-2 rounded-full font-medium text-base'
-              onClick={() => {
-                setIsSignInOpen(true)
-              }}>
-              Sign In
-            </Link>
-            {isSignInOpen && (
-              <div className='fixed top-0 left-0 w-full h-full bg-black/50 flex items-center justify-center z-50'>
-                <div
-                  ref={signInRef}
-                  className='relative mx-auto w-full bg-white max-w-md overflow-hidden rounded-lg px-8 pt-14 pb-8 text-center bg-dark_grey/90 backdrop-blur-md'>
-                  <button
-                    onClick={() => setIsSignInOpen(false)}
-                    className='absolute top-0 right-0 mr-8 mt-8 dark:invert hover:cursor-pointer'
-                    aria-label='Close Sign In Modal'>
-                    <Icon
-                      icon='tabler:currency-xrp'
-                      className='text-white hover:text-primary text-24 inline-block me-2'
-                    />
-                  </button>
-                  <Signin />
-                </div>
-              </div>
-            )}
-            <Link
-              href='#'
-              className='hidden lg:block bg-primary text-white hover:bg-transparent hover:text-primary border border-primary px-6 py-2 rounded-full font-medium text-base'
-              onClick={() => {
-                setIsSignUpOpen(true)
-              }}>
-              Sign Up
-            </Link>
-            {isSignUpOpen && (
-              <div className='fixed top-0 left-0 w-full h-full bg-black/50 flex items-center justify-center z-50'>
-                <div
-                  ref={signUpRef}
-                  className='relative mx-auto w-full bg-white max-w-md overflow-hidden rounded-lg bg-dark_grey/90 backdrop-blur-md px-8 pt-14 pb-8 text-center'>
-                  <button
-                    onClick={() => setIsSignUpOpen(false)}
-                    className='absolute top-0 right-0 mr-8 mt-8 dark:invert hover:cursor-pointer'
-                    aria-label='Close Sign Up Modal'>
-                    <Icon
-                      icon='tabler:currency-xrp'
-                      className='text-white hover:text-primary text-24 inline-block me-2'
-                    />
-                  </button>
-                  <SignUp />
-                </div>
-              </div>
+            {authenticated ? (
+              <Link
+                href='/profile'
+                className='hidden lg:flex items-center gap-2 bg-primary text-white hover:bg-transparent hover:text-primary border border-primary px-6 py-2 rounded-full font-medium text-base'>
+                <Icon icon='fa:user' className='text-lg' />
+                Profile
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href='/signin'
+                  className='hidden lg:block bg-transparent text-primary border hover:bg-primary border-primary hover:text-white px-6 py-2 rounded-full font-medium text-base'>
+                  Sign In
+                </Link>
+                <Link
+                  href='/signup'
+                  className='hidden lg:block bg-primary text-white hover:bg-transparent hover:text-primary border border-primary px-6 py-2 rounded-full font-medium text-base'>
+                  Sign Up
+                </Link>
+              </>
             )}
             <button
               onClick={() => setNavbarOpen(!navbarOpen)}
@@ -181,24 +164,36 @@ const Header: React.FC = () => {
               <MobileHeaderLink key={index} item={item} />
             ))}
             <div className='mt-4 flex flex-col gap-4 w-full'>
-              <Link
-                href='#'
-                className='bg-transparent border border-primary text-primary px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white'
-                onClick={() => {
-                  setIsSignInOpen(true)
-                  setNavbarOpen(false)
-                }}>
-                Sign In
-              </Link>
-              <Link
-                href='#'
-                className='bg-primary text-white  px-4 py-2 rounded-lg hover:bg-blue-700'
-                onClick={() => {
-                  setIsSignUpOpen(true)
-                  setNavbarOpen(false)
-                }}>
-                Sign Up
-              </Link>
+              {authenticated ? (
+                <Link
+                  href='/profile'
+                  className='flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700'
+                  onClick={() => {
+                    setNavbarOpen(false)
+                  }}>
+                  <Icon icon='fa:user' className='text-lg' />
+                  Profile
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href='/signin'
+                    className='bg-transparent border border-primary text-primary px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white'
+                    onClick={() => {
+                      setNavbarOpen(false)
+                    }}>
+                    Sign In
+                  </Link>
+                  <Link
+                    href='/signup'
+                    className='bg-primary text-white  px-4 py-2 rounded-lg hover:bg-blue-700'
+                    onClick={() => {
+                      setNavbarOpen(false)
+                    }}>
+                    Sign Up
+                  </Link>
+                </>
+              )}
             </div>
           </nav>
         </div>

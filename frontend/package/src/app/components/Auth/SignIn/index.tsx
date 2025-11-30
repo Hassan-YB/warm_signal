@@ -1,47 +1,88 @@
 'use client'
-import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
-import SocialSignIn from '../SocialSignIn'
 import Logo from '@/app/components/Layout/Header/Logo'
 import Loader from '@/app/components/Common/Loader'
+import { apiRequest, setTokens } from '@/utils/api'
 
-const Signin = () => {
+interface SigninProps {
+  onSuccess?: () => void
+}
+
+const Signin = ({ onSuccess }: SigninProps) => {
   const router = useRouter()
 
   const [loginData, setLoginData] = useState({
     email: '',
     password: '',
-    checkboxToggle: false,
   })
   const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState<{ email?: string; password?: string; non_field_errors?: string }>({})
 
-  const loginUser = (e: any) => {
+  const loginUser = async (e: React.FormEvent) => {
     e.preventDefault()
-
     setLoading(true)
-    signIn('credentials', { ...loginData, redirect: false })
-      .then((callback) => {
-        if (callback?.error) {
-          toast.error(callback?.error)
-          console.log(callback?.error)
-          setLoading(false)
-          return
-        }
+    setErrors({})
 
-        if (callback?.ok && !callback?.error) {
-          toast.success('Login successful')
-          setLoading(false)
-          router.push('/')
+    try {
+      const data = await apiRequest<{ user: any; tokens: { access: string; refresh: string } }>(
+        '/api/auth/login/',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            email: loginData.email,
+            password: loginData.password,
+          }),
+        },
+        false // Public endpoint, don't send auth token
+      )
+
+      if (data.success && data.data) {
+        // Store tokens
+        if (data.data.tokens) {
+          setTokens(data.data.tokens.access, data.data.tokens.refresh)
+          // Dispatch custom event to notify other components
+          window.dispatchEvent(new Event('authStateChanged'))
         }
-      })
-      .catch((err) => {
+        toast.success(data.message || 'Login successful')
         setLoading(false)
-        console.log(err.message)
-        toast.error(err.message)
-      })
+        // Close modal if callback provided
+        if (onSuccess) {
+          onSuccess()
+        }
+        router.push('/profile')
+      } else {
+        // Handle errors
+        const fieldErrors: { email?: string; password?: string; non_field_errors?: string } = {}
+        
+        if (data.errors) {
+          if (data.errors.email) {
+            fieldErrors.email = Array.isArray(data.errors.email) ? data.errors.email[0] : data.errors.email
+          }
+          if (data.errors.password) {
+            fieldErrors.password = Array.isArray(data.errors.password) ? data.errors.password[0] : data.errors.password
+          }
+          if (data.errors.non_field_errors) {
+            fieldErrors.non_field_errors = Array.isArray(data.errors.non_field_errors) 
+              ? data.errors.non_field_errors[0] 
+              : data.errors.non_field_errors
+          }
+        }
+        
+        setErrors(fieldErrors)
+        
+        // Show general error message
+        const errorMessage = data.message || 'Login failed. Please check your credentials.'
+        toast.error(errorMessage)
+        setLoading(false)
+      }
+    } catch (err: any) {
+      setLoading(false)
+      toast.error(err.message || 'An error occurred. Please try again.')
+      console.error(err)
+    }
   }
 
   return (
@@ -50,43 +91,51 @@ const Signin = () => {
         <Logo />
       </div>
 
-      <SocialSignIn />
-
-      <span
-        className="relative my-8 block text-center z-1 
-  before:content-[''] before:absolute before:left-0 before:top-3 before:h-px before:w-[40%] before:bg-black/20 
-  after:content-[''] after:absolute after:right-0 after:top-3 after:h-px after:w-[40%] after:bg-black/20">
-        <span className='relative z-10 inline-block px-3 text-base text-black text-body-secondary'>
-          OR
-        </span>
-      </span>
-
-      <form onSubmit={(e) => e.preventDefault()}>
+      <form onSubmit={loginUser}>
         <div className='mb-[22px]'>
           <input
             type='email'
             placeholder='Email'
-            onChange={(e) =>
+            value={loginData.email}
+            onChange={(e) => {
               setLoginData({ ...loginData, email: e.target.value })
-            }
-            className='w-full rounded-md border border-solid bg-transparent px-5 py-3 text-base text-dark outline-hidden transition border-gray-200 placeholder:text-black/30 focus:border-primary focus-visible:shadow-none text-black'
+              if (errors.email) setErrors({ ...errors, email: undefined })
+            }}
+            className={`w-full rounded-md border border-solid bg-transparent px-5 py-3 text-base text-dark outline-hidden transition border-gray-200 placeholder:text-black/30 focus:border-primary focus-visible:shadow-none text-black ${
+              errors.email ? 'border-red-500' : ''
+            }`}
           />
+          {errors.email && (
+            <p className='mt-1 text-sm text-red-500'>{errors.email}</p>
+          )}
         </div>
         <div className='mb-[22px]'>
           <input
             type='password'
             placeholder='Password'
-            onChange={(e) =>
+            value={loginData.password}
+            onChange={(e) => {
               setLoginData({ ...loginData, password: e.target.value })
-            }
-            className='w-full rounded-md border border-solid bg-transparent px-5 py-3 text-base text-dark outline-hidden transition border-gray-200 placeholder:text-black/30 focus:border-primary text-black focus-visible:shadow-none'
+              if (errors.password) setErrors({ ...errors, password: undefined })
+            }}
+            className={`w-full rounded-md border border-solid bg-transparent px-5 py-3 text-base text-dark outline-hidden transition border-gray-200 placeholder:text-black/30 focus:border-primary text-black focus-visible:shadow-none ${
+              errors.password ? 'border-red-500' : ''
+            }`}
           />
+          {errors.password && (
+            <p className='mt-1 text-sm text-red-500'>{errors.password}</p>
+          )}
         </div>
+        {errors.non_field_errors && (
+          <div className='mb-4'>
+            <p className='text-sm text-red-500'>{errors.non_field_errors}</p>
+          </div>
+        )}
         <div className='mb-9'>
           <button
-            onClick={loginUser}
             type='submit'
-            className='bg-primary w-full py-3 rounded-lg text-18 font-medium transition duration-300 ease-in-out border text-white border-primary hover:text-primary hover:bg-transparent hover:cursor-pointer'>
+            disabled={loading}
+            className='bg-primary w-full py-3 rounded-lg text-18 font-medium transition duration-300 ease-in-out border text-white border-primary hover:text-primary hover:bg-transparent hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'>
             Sign In {loading && <Loader />}
           </button>
         </div>
@@ -99,7 +148,7 @@ const Signin = () => {
       </Link>
       <p className='text-body-secondary text-black text-base'>
         Not a member yet?{' '}
-        <Link href='/' className='text-primary hover:underline'>
+        <Link href='/signup' className='text-primary hover:underline'>
           Sign Up
         </Link>
       </p>

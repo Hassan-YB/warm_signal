@@ -1,0 +1,18 @@
+version: '3.8'
+
+# This file extends the main docker-compose.yml to add workspace mounting
+# for better IntelliSense support in the dev container
+
+services:
+  frontend:
+    volumes:
+      # Add workspace mount for accessing the entire project structure
+      # The /app mount is already defined in the main docker-compose.yml
+      - ${localWorkspaceFolder}:/workspace:delegated
+
+  web:
+    volumes:
+      # Add workspace mount for accessing the entire project structure
+      # The /app mount is already defined in the main docker-compose.yml
+      - ${localWorkspaceFolder}:/workspace:delegated
+
