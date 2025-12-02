@@ -71,9 +71,9 @@ const Footer = () => {
           <h4 className='text-lg text-center md:text-start font-normal text-white/60'>
             @2025.All rights reserved by{' '}
             <Link
-              href='https://getnextjstemplates.com/'
+              href='https://signaltrace.ai/'
               className='hover:text-white'>
-              GetNextJs Templates
+              Signal Trace
             </Link>
           </h4>
           <div className='flex gap-5  justify-center items-center md:justify-start'>
