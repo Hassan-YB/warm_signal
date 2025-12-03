@@ -236,12 +236,12 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className='min-h-screen bg-slate-100 py-5'>
-      <div className='container mx-auto px-4'>
+    <div className='min-h-screen bg-slate-100'>
+      <div className='container mx-auto px-4 pt-8 pb-8'>
         <div className='flex flex-col md:flex-row gap-6'>
             {/* Sidebar */}
             <div className='w-full md:w-64 flex-shrink-0'>
-              <div className='rounded-xl border border-gray-200 bg-white shadow-sm p-4 min-h-[600px]'>
+              <div className='rounded-xl border border-gray-200 bg-white shadow-sm p-4'>
                 <h2 className='text-2xl font-bold mb-6 text-gray-900 text-center'>Settings</h2>
                 <div className='space-y-2'>
                   <button
@@ -280,7 +280,7 @@ const ProfilePage = () => {
 
             {/* Main Content */}
             <div className='flex-1'>
-              <div className='rounded-xl border border-gray-200 bg-white shadow-sm p-8 min-h-[600px]'>
+              <div className='rounded-xl border border-gray-200 bg-white shadow-sm p-8'>
                 {activeTab === 'profile' && (
                   <div>
                     <h2 className='text-2xl font-bold mb-2 text-gray-900 flex items-start gap-3 leading-none'>

@@ -26,7 +26,7 @@ const ForgotPasswordVerifyPage = () => {
     return (
       <>
         <Breadcrumb pageName='Verify OTP' />
-        <div className='bg-slate-100'>
+        <div className='min-h-screen bg-slate-100'>
           <div className='container mx-auto px-4 pb-8'>
             <div className='flex justify-center'>
               <div className='w-full max-w-md'>
@@ -44,8 +44,8 @@ const ForgotPasswordVerifyPage = () => {
   return (
     <>
       <Breadcrumb pageName='Verify OTP' />
-      <div className='bg-slate-100'>
-        <div className='container mx-auto px-4 pb-4'>
+      <div className='min-h-screen bg-slate-100'>
+        <div className='container mx-auto px-4 pb-8'>
           <div className='flex justify-center'>
             <div className='w-full max-w-md'>
               <OTPVerification
