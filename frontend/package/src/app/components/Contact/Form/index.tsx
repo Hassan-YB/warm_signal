@@ -4,7 +4,11 @@ import { useState, useEffect } from 'react'
 import { apiRequest } from '@/utils/api'
 import toast from 'react-hot-toast'
 
-const ContactForm = () => {
+interface ContactFormProps {
+  isHomepage?: boolean
+}
+
+const ContactForm = ({ isHomepage = false }: ContactFormProps) => {
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -91,7 +95,7 @@ const ContactForm = () => {
   }
 
   return (
-    <div className='min-h-screen bg-slate-100'>
+    <div className={`${isHomepage ? 'py-20' : 'min-h-screen'} bg-slate-100`}>
       <div className='container mx-auto px-4 pb-8'>
         <div className='flex justify-center'>
           <div className='w-full max-w-2xl'>

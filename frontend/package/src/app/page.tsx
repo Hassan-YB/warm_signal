@@ -20,7 +20,7 @@ export default function Home() {
       <Business />
       <Payment />
       <Pricing />
-      <ContactForm />
+      <ContactForm isHomepage={true} />
     </main>
   )
 }
