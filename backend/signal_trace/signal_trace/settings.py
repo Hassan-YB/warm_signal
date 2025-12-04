@@ -26,11 +26,14 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-il5wb+df^e93_18tnet#r
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,signaltrace.ai,www.signaltrace.ai').split(',')
 
-CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:8000,http://127.0.0.1:3000,http://127.0.0.1:8000').split(',')
+CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:8000,http://127.0.0.1:3000,http://127.0.0.1:8000,https://signaltrace.ai,https://www.signaltrace.ai').split(',')
 
-CORS_TRUSTED_ORIGINS = os.environ.get('CORS_TRUSTED_ORIGINS', 'http://localhost:3000,http://localhost:8000,http://127.0.0.1:3000,http://127.0.0.1:8000').split(',')
+CORS_TRUSTED_ORIGINS = os.environ.get('CORS_TRUSTED_ORIGINS', 'http://localhost:3000,http://localhost:8000,http://127.0.0.1:3000,http://127.0.0.1:8000,https://signaltrace.ai,https://www.signaltrace.ai').split(',')
+
+# CSRF trusted origins (required for Django CSRF protection)
+CSRF_TRUSTED_ORIGINS = CORS_TRUSTED_ORIGINS
 
 # Allow credentials for CORS
 CORS_ALLOW_CREDENTIALS = True
